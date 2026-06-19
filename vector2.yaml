@@ -1,0 +1,21 @@
+sources:
+  test_in:
+    type: http_server
+    address: "127.0.0.1:8788"
+    framing:
+      method: newline_delimited
+    decoding:
+      codec: json
+
+sinks:
+  test_out:
+    type: http
+    inputs: [test_in]
+    uri: "http://127.0.0.1:8789/collect"
+    encoding:
+      codec: json
+    framing:
+      method: newline_delimited
+    batch:
+      timeout_secs: 0.5
+      max_events: 10
