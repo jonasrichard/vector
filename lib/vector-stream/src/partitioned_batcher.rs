@@ -269,19 +269,22 @@ where
             if !this.closed_batches.is_empty() {
                 return Poll::Ready(this.closed_batches.pop());
             }
-            match this.stream.as_mut().poll_next(cx) {
-                Poll::Pending => match this.timer.poll_expired(cx) {
-                    // Unlike normal streams, `DelayQueue` can return `None`
-                    // here but still be usable later if more entries are added.
-                    Poll::Pending | Poll::Ready(None) => return Poll::Pending,
-                    Poll::Ready(Some(item_key)) => {
-                        let mut batch = this
-                            .batches
-                            .remove(&item_key)
-                            .expect("batch should exist if it is set to expire");
+
+            match this.timer.poll_expired(cx) {
+                // Unlike normal streams, `DelayQueue` can return `None`
+                // here but still be usable later if more entries are added.
+                Poll::Pending | Poll::Ready(None) => {}
+                Poll::Ready(Some(item_key)) => {
+                    if let Some(mut batch) = this.batches.remove(&item_key) {
                         this.closed_batches.push((item_key, batch.take_batch()));
                     }
-                },
+                }
+            }
+
+            match this.stream.as_mut().poll_next(cx) {
+                Poll::Pending => {
+                    return Poll::Pending;
+                }
                 Poll::Ready(None) => {
                     // Now that the underlying stream is closed, we need to
                     // clear out our batches, including all expiration
