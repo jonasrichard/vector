@@ -40,6 +40,8 @@ jobs:
         with:
           rust: true
 
+      - uses: ./.github/actions/dd-token
+
       - name: Cache Rust build
         uses: Swatinem/rust-cache@v2
         with:
