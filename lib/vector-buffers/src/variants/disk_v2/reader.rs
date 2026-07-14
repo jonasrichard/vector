@@ -374,7 +374,14 @@ where
         // - `try_next_record` does all the archive checks, checksum validation, etc
         let record = unsafe { archived_root::<Record<'_>>(&self.aligned_buf) };
 
-        decode_record_payload(record)
+        decode_record_payload(record).map_err(|e| {
+            error!(
+                message = "invalid record",
+                %e,
+                record_id = record_id,
+            );
+            e
+        })
     }
 }
 
