@@ -258,7 +258,16 @@ where
         writer
             .validate_last_write()
             .await
-            .context(WriterSeekFailedSnafu)?;
+            .context(WriterSeekFailedSnafu)
+            .map_err(|e| {
+                error!(
+                    message = "failed to seek writer buffer",
+                    %e,
+                    data_dir = ledger.config().data_dir.to_string_lossy().to_string(),
+                    file_id = ledger.get_current_writer_file_id(),
+                );
+                e
+            })?;
 
         let finalizer = Arc::clone(&ledger).spawn_finalizer();
 
@@ -280,7 +289,16 @@ where
         reader
             .seek_to_next_record()
             .await
-            .context(ReaderSeekFailedSnafu)?;
+            .context(ReaderSeekFailedSnafu)
+            .map_err(|e| {
+                error!(
+                    message = "failed to seek reader buffer",
+                    %e,
+                    data_dir = ledger.config().data_dir.to_string_lossy().to_string(),
+                    file_id = ledger.get_current_reader_file_id(),
+                );
+                e
+            })?;
 
         // Install the authoritative buffer size now that the reader is positioned at the first
         // unread record. Startup recovery treats the durable ledger checkpoint as the logical
